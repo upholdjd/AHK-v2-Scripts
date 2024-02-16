@@ -1,0 +1,75 @@
+#Requires AutoHotkey v2.0.7
+#Include !Noti_Alert.ahk
+#SingleInstance Force
+Persistent
+
+
+Icon := A_ScriptDir "/Libs/home.ico"
+If FileExist(Icon)
+    TraySetIcon(Icon)
+
+
+^!v::
+{
+    Browser := 'C:\Program Files (x86)\Microsoft\Edge\Application\MsEdge.exe'
+    win := 'ahk_class Chrome_WidgetWin_1 ahk_exe MsEdge.exe'
+    ClipSaved := ClipboardAll()
+    SendInput "^c"
+    if !ClipWait(1)
+    {
+        A_Clipboard := ClipSaved
+        ClipSaved := ""
+    }
+    string := Trim(A_Clipboard, " `t`r`n") 
+    reg := RegExMatch(string, "i)^\S+\.(com|de|gov|io|jp|net|org|to|tv|uk)|(\/.*)$")? "" : "https://www.google.com/search?q="
+    url :=  '"' . reg . string . '"'
+    Run(Browser . ' --new-tab ' . url,, 'Max')
+    if WinWait(win,, 3)
+        WinActivate(win)
+    MinMax := WinGetMinMax(win)
+    if (MinMax < 1)
+        WinMaximize(win)
+    A_Clipboard := ""
+    Noti_Secondary_Gui(string, "1000", "12", "-38", "0")
+}
+
+
+^!c::
+{
+    If WinActive('ahk_exe MsEdge.exe')
+        
+    ClipSaved := ClipboardAll()
+    SendInput "^l"
+    SendInput "^c"
+    if !ClipWait(1)
+    {
+        A_Clipboard := ClipSaved
+    }
+    url :=  A_Clipboard
+}
+
+
+*F13::A_Clipboard := ""
+OnClipboardChange(Notify)
+
+
+Notify(clip_type) {
+    Static _types := {0:"Empty", 1:"Text", 2:"Binary Data"}
+    new_type := _types.%clip_type%
+    TrayTip(A_Clipboard, "Clipboard: " new_type, "Mute 4 32")
+    SetTimer () => TrayTip(), -1500
+}
+
+#HotIf WinActive('ahk_exe Discord.exe')
+*^!w::
+{
+    WinHide()
+    ;; After minimizing Discord,
+    ;; the focus seems to go to the taskbar.
+    ;; This can be confirmed by uncommenting the following line of code.
+    ;; If the message equals `Shell_TrayWnd`,
+    ;; it means that the topmost "window" is the taskbar.
+    ; MsgBox(WinGetClass(WinGetList()[1]))
+    ;; Thus we want to focus the 2nd topmost window
+    WinActivate(WinGetList()[2])
+}
